@@ -1,920 +1,453 @@
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── index.html
-├── server.ts                    # Backend Express + Gemini API 3.8 Flash + Local NLP
-└── src/
-    ├── main.tsx
-    ├── App.tsx                  # Điều phối trạng thái chính
-    ├── index.css                # Tailwind CSS + Typography + Smooth Scrollbar
-    ├── types/
-    │   └── index.ts             # Định nghĩa kiểu dữ liệu
-    ├── utils/
-    │   └── soundEffects.ts      # Bộ tổng hợp âm thanh thiên nhiên & chuông Zen (Web Audio API)
-    ├── data/
-    │   └── mockData.ts          # Dữ liệu cẩm nang an toàn số, hotline & mẫu nhật ký
-    └── components/
-        ├── Navbar.tsx           # Thanh tiêu đề, thông báo, soundscape, SOS
-        ├── HeroSection.tsx      # Lời chào, bảng đánh giá cảm xúc từ 0%, chọn mood
-        ├── EmotionChart.tsx     # Biểu đồ đường SVG phân tích cảm xúc & tác nhân stress
-        ├── JournalView.tsx      # Sổ tay nhật ký số tích hợp NLP AI
-        ├── CompanionChat.tsx    # Chatbot An An đối chiếu tài liệu chính thống & TTS
-        ├── FloatingChatButton.tsx # Nút chat tròn nổi 24/7 góc dưới
-        ├── SafetyHub.tsx        # Trạm kiến thức an toàn mạng dạng poster + Quiz
-        ├── BreathingWidget.tsx  # Bài tập thở 4-7-8, Thở hộp & Kỹ thuật 5-4-3-2-1
-        ├── EmergencyModal.tsx   # Modal cứu trợ khẩn cấp SOS 111 & Thoát nhanh
-        └── Footer.tsx           # Chân trang & cam kết bảo mật
-        {
-  "name": "tam-an-safespace",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "tsx server.ts",
-    "build": "vite build",
-    "start": "NODE_ENV=production tsx server.ts",
-    "preview": "vite preview",
-    "lint": "tsc --noEmit"
+import { JournalEntry, SafetyTopic, SafetyQuiz, HotlineContact } from '../types';
+
+export const DAILY_QUOTES = [
+  {
+    quote: "Cảm xúc giống như những đám mây trôi trên bầu trời. Dù mây có xám xịt đến đâu, bầu trời xanh vẫn luôn ở đó chờ bạn.",
+    author: "Tâm An Đồng Hành",
   },
-  "dependencies": {
-    "@google/genai": "^2.4.0",
-    "@tailwindcss/vite": "^4.3.3",
-    "@vitejs/plugin-react": "^6.1.1",
-    "canvas-confetti": "^1.9.4",
-    "dotenv": "^17.2.3",
-    "express": "^4.21.2",
-    "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "vite": "^8.3.0"
+  {
+    quote: "Bạn không cần phải hoàn hảo mỗi ngày. Việc bạn thức dậy và cố gắng vượt qua từng ngày đã là một điều phi thường rồi.",
+    author: "Lời nhắn yêu thương",
   },
-  "devDependencies": {
-    "@types/canvas-confetti": "^1.9.0",
-    "@types/express": "^4.17.21",
-    "@types/node": "^22.14.0",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.4.21",
-    "tailwindcss": "^4.3.3",
-    "tsx": "^4.21.0",
-    "typescript": "^7.0.2"
-  }
-}
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import { defineConfig } from 'vite';
+  {
+    quote: "Trên mạng xã hội, người ta chỉ khoe những khoảnh khắc rực rỡ nhất. Đừng so sánh hậu trường của mình với thước phim đẹp nhất của người khác.",
+    author: "Góc Nhìn An Toàn",
+  },
+  {
+    quote: "Dũng cảm không phải là không bao giờ sợ hãi, mà là dám chia sẻ khi bản thân thấy bất an và cần sự giúp đỡ.",
+    author: "Học Cách Lắng Nghe",
+  },
+];
 
-export default defineConfig(() => {
-  return {
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
-    server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-  };
-});
-<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tâm An - SafeSpace | Không Gian An Toàn Cho Thanh Thiếu Niên</title>
-    <meta name="description" content="Nền tảng hỗ trợ tâm lý và an toàn không gian mạng cho trẻ em và thanh thiếu niên với Nhật ký Cảm xúc NLP, Chatbot Đồng hành 24/7 và Trạm An toàn Mạng." />
-    <meta property="og:title" content="Tâm An - SafeSpace | Không Gian An Toàn Cho Thanh Thiếu Niên" />
-    <meta property="og:description" content="Nền tảng hỗ trợ tâm lý và an toàn không gian mạng cho trẻ em và thanh thiếu niên." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>@import "tailwindcss";
-
-@layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color: #1e293b;
-    background-color: #f8faf9;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  h1, h2, h3, h4 {
-    font-family: 'Quicksand', 'Plus Jakarta Sans', sans-serif;
-  }
-}
-
-/* Custom smooth scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-export interface EmotionScore {
-  joy: number; // Vui vẻ (0-100)
-  sadness: number; // Buồn bã (0-100)
-  anger: number; // Tức giận (0-100)
-  anxiety: number; // Lo âu / Căng thẳng (0-100)
-  optimism: number; // Lạc quan / Bình yên (0-100)
-}
-
-export interface JournalEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:mm
-  moodEmoji: string;
-  moodLabel: string;
-  tags: string[];
-  emotions: EmotionScore;
-  dominantEmotion: string;
-  sentimentScore: number; // -100 to +100
-  triggers: string[];
-  empathyMessage: string;
-  selfCareTips: string[];
-  safetyRisk?: boolean;
-}
-
-export interface ChatMessage {
-  id: string;
-  sender: 'user' | 'assistant';
-  text: string;
-  timestamp: string;
-  safetyTriggered?: boolean;
-  suggestedActions?: string[];
-  officialSources?: string[];
-}
-
-export interface SafetyTopic {
-  id: string;
-  category: 'cyberbullying' | 'privacy' | 'fakenews' | 'grooming';
-  title: string;
-  badge: string;
-  subtitle: string;
-  iconName: string;
-  colorBg: string;
-  colorBorder: string;
-  colorAccent: string;
-  summary: string;
-  comicVisual: {
-    title: string;
-    description: string;
-    icon: string;
-  };
-  keyRules: {
-    rule: string;
-    detail: string;
-  }[];
-  actionGuide: string[];
-  cautionSigns: string[];
-  verifiedSources: {
-    name: string;
-    desc: string;
-    url?: string;
-  }[];
-}
-
-export interface SafetyQuiz {
-  id: string;
-  category: string;
-  question: string;
-  context: string;
-  options: {
-    text: string;
-    isCorrect: boolean;
-    explanation: string;
-  }[];
-}
-
-export interface HotlineContact {
-  name: string;
-  number: string;
-  shortDesc: string;
-  badge: string;
-  available: string;
-  isFree: boolean;
-  type: 'children' | 'mental_health' | 'cyber_safety' | 'police';
-}
-/**
- * Web Audio API Ambient Soundscapes & Relaxation Chimes
- * Không phụ thuộc file âm thanh ngoài - chạy trực tiếp trên trình duyệt.
- */
-
-class AmbientSoundManager {
-  private ctx: AudioContext | null = null;
-  private currentSource: AudioNode | null = null;
-  private gainNode: GainNode | null = null;
-  private activeSound: 'rain' | 'ocean' | 'none' = 'none';
-
-  private initContext() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      this.ctx = new AudioCtx();
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
-
-  // Tiếng chuông tĩnh tâm (Zen Chime) khi thở hoặc hoàn thành ghi nhật ký
-  public playZenChime(frequency: number = 528) {
-    try {
-      this.initContext();
-      if (!this.ctx) return;
-
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(frequency, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(frequency * 0.99, this.ctx.currentTime + 3.0);
-
-      gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 3.2);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start();
-      osc.stop(this.ctx.currentTime + 3.3);
-    } catch (e) {
-      console.warn('Zen chime audio error:', e);
-    }
-  }
-
-  // Phát âm thanh mưa rào dịu nhẹ
-  public startRain() {
-    this.stopAmbient();
-    this.initContext();
-    if (!this.ctx) return;
-
-    const bufferSize = this.ctx.sampleRate * 2;
-    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
-    }
-
-    const whiteNoise = this.ctx.createBufferSource();
-    whiteNoise.buffer = noiseBuffer;
-    whiteNoise.loop = true;
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-
-    whiteNoise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    whiteNoise.start();
-    this.currentSource = whiteNoise;
-    this.gainNode = gain;
-    this.activeSound = 'rain';
-  }
-
-  // Phát tiếng sóng biển rì rào
-  public startOcean() {
-    this.stopAmbient();
-    this.initContext();
-    if (!this.ctx) return;
-
-    const bufferSize = this.ctx.sampleRate * 3;
-    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-
-    let b0 = 0, b1 = 0, b2 = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      output[i] = (b0 + b1 + b2 + white * 0.05) * 0.2;
-    }
-
-    const noiseSource = this.ctx.createBufferSource();
-    noiseSource.buffer = noiseBuffer;
-    noiseSource.loop = true;
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(450, this.ctx.currentTime);
-
-    const lfo = this.ctx.createOscillator();
-    lfo.frequency.setValueAtTime(0.125, this.ctx.currentTime);
-
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
-
-    const masterGain = this.ctx.createGain();
-    masterGain.gain.setValueAtTime(0.09, this.ctx.currentTime);
-
-    lfo.connect(lfoGain);
-    lfoGain.connect(masterGain.gain);
-
-    noiseSource.connect(filter);
-    filter.connect(masterGain);
-    masterGain.connect(this.ctx.destination);
-
-    noiseSource.start();
-    lfo.start();
-
-    this.currentSource = noiseSource;
-    this.gainNode = masterGain;
-    this.activeSound = 'ocean';
-  }
-
-  public stopAmbient() {
-    if (this.currentSource) {
-      try {
-        (this.currentSource as any).stop?.();
-        this.currentSource.disconnect();
-      } catch (e) {
-        // ignore
-      }
-      this.currentSource = null;
-    }
-    this.activeSound = 'none';
-  }
-
-  public getActiveSound(): 'rain' | 'ocean' | 'none' {
-    return this.activeSound;
-  }
-}
-
-export const soundManager = new AmbientSoundManager();import express from 'express';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { GoogleGenAI, ThinkingLevel } from '@google/genai';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-const isProduction = process.env.NODE_ENV === 'production';
-
-app.use(express.json({ limit: '5mb' }));
-
-// Khởi tạo Gemini SDK an toàn phía server
-const rawApiKey = process.env.GEMINI_API_KEY;
-const isValidKey = Boolean(rawApiKey && rawApiKey !== 'MY_GEMINI_API_KEY' && rawApiKey.trim().length > 15);
-const ai = isValidKey
-  ? new GoogleGenAI({
-      apiKey: rawApiKey!,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    })
-  : null;
-
-// Helper timeout cho Gemini API
-function withTimeout<T>(promise: Promise<T>, timeoutMs = 8000): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Quá thời gian chờ phản hồi (${timeoutMs}ms)`)), timeoutMs)
-    ),
-  ]);
-}
-
-// Kiểm tra từ khoá nguy cơ khủng hoảng (Crisis Detection)
-function checkEmergencyKeywords(text: string): boolean {
-  const normalized = text.toLowerCase();
-  const crisisPatterns = [
-    'tự tử', 'tự sát', 'muốn chết', 'chết đi', 'không muốn sống', 'tự làm đau',
-    'cắt cổ tay', 'rạch tay', 'nhảy lầu', 'uống thuốc ngủ', 'kết thúc cuộc đời',
-    'tống tiền ảnh nóng', 'bị dọa tung ảnh', 'bị xâm hại', 'bị bạo hành', 'muốn biến mất mãi mãi',
-  ];
-  return crisisPatterns.some((pattern) => normalized.includes(pattern));
-}
-
-// Fallback NLP phân tích cảm xúc cục bộ
-function localFallbackEmotionAnalysis(title: string, content: string) {
-  const combined = `${title} ${content}`.toLowerCase();
-  const hasSafetyRisk = checkEmergencyKeywords(combined);
-
-  const joyWords = ['vui', 'hạnh phúc', 'cười', 'tuyệt vời', 'thích', 'yêu', 'may mắn', 'tự hào', 'hài lòng', 'phấn khởi'];
-  const sadnessWords = ['buồn', 'khóc', 'cô đơn', 'thất vọng', 'tủi thân', 'chán', 'nhớ', 'mất mát', 'đau lòng', 'bỏ rơi'];
-  const angerWords = ['tức', 'giận', 'bực', 'phẫn nộ', 'ghét', 'bất bình', 'cãi nhau', 'chửi', 'bất hòa', 'bắt nạt'];
-  const anxietyWords = ['lo', 'sợ', 'áp lực', 'căng thẳng', 'stress', 'bất an', 'thi cử', 'bài tập', 'lo lắng', 'hoang mang'];
-  const optimismWords = ['cố gắng', 'hy vọng', 'tin tưởng', 'bình yên', 'nhẹ nhõm', 'biết ơn', 'ngày mai', 'thư giãn'];
-
-  const countMatches = (list: string[]) =>
-    list.reduce((acc, word) => acc + (combined.includes(word) ? 1 : 0), 0);
-
-  const joyHits = countMatches(joyWords);
-  const sadHits = countMatches(sadnessWords);
-  const angerHits = countMatches(angerWords);
-  const anxietyHits = countMatches(anxietyWords);
-  const optimismHits = countMatches(optimismWords);
-
-  let joy = Math.min(100, Math.max(10, 25 + joyHits * 25 - sadHits * 10));
-  let sadness = Math.min(100, Math.max(5, 15 + sadHits * 30 - joyHits * 10));
-  let anger = Math.min(100, Math.max(5, 10 + angerHits * 30));
-  let anxiety = Math.min(100, Math.max(10, 20 + anxietyHits * 25));
-  let optimism = Math.min(100, Math.max(15, 30 + optimismHits * 25 + joyHits * 10 - sadHits * 10));
-
-  const maxVal = Math.max(joy, sadness, anger, anxiety, optimism);
-  let dominantEmotion = 'Bình yên & Trung tính';
-  if (hasSafetyRisk || sadness >= 70) dominantEmotion = 'Buồn bã sâu sắc';
-  else if (anxiety === maxVal) dominantEmotion = 'Lo âu & Áp lực';
-  else if (anger === maxVal) dominantEmotion = 'Tức giận & Bức xúc';
-  else if (sadness === maxVal) dominantEmotion = 'Buồn bã & Trầm lắng';
-  else if (joy === maxVal) dominantEmotion = 'Vui vẻ & Hào hứng';
-  else if (optimism === maxVal) dominantEmotion = 'Lạc quan & Bình yên';
-
-  const sentimentScore = Math.round((joy + optimism - sadness - anger - anxiety * 0.5) / 2);
-
-  const triggers: string[] = [];
-  if (combined.includes('thi') || combined.includes('học') || combined.includes('điểm')) triggers.push('Áp lực học tập & thi cử');
-  if (combined.includes('bạn') || combined.includes('tẩy chay') || combined.includes('nói xấu')) triggers.push('Mối quan hệ bạn bè / Mạng xã hội');
-  if (combined.includes('bố') || combined.includes('mẹ') || combined.includes('gia đình')) triggers.push('Kỳ vọng hoặc bất đồng gia đình');
-  if (triggers.length === 0) triggers.push('Nhịp sống & suy nghĩ nội tâm');
-
-  return {
-    emotions: { joy, sadness, anger, anxiety, optimism },
-    dominantEmotion,
-    sentimentScore,
-    triggers,
-    empathyMessage: 'Cảm ơn bạn đã dũng cảm viết ra cảm xúc của mình. Mọi cảm xúc, dù vui hay buồn, đều là một phần tự nhiên và đáng trân trọng của bạn.',
+export const INITIAL_JOURNAL_ENTRIES: JournalEntry[] = [
+  {
+    id: 'entry-1',
+    title: 'Áp lực trước tuần thi giữa kỳ và bài kiểm tra Toán',
+    content: 'Hôm nay cô giáo vừa phát lịch thi giữa kì. Nhìn khối lượng kiến thức môn Toán và Hoá mà mình thấy choáng ngợp. Cả buổi chiều ngồi vào bàn học nhưng đầu óc cứ căng cứng, không thể tập trung được. Mình sợ làm bố mẹ thất vọng nếu điểm số lại tụt dốc như lần trước...',
+    date: '2026-10-10',
+    time: '21:30',
+    moodEmoji: '😰',
+    moodLabel: 'Lo âu',
+    tags: ['Học tập', 'Thi cử', 'Gia đình'],
+    emotions: { joy: 15, sadness: 45, anger: 20, anxiety: 88, optimism: 25 },
+    dominantEmotion: 'Lo âu & Áp lực thi cử',
+    sentimentScore: -45,
+    triggers: ['Khối lượng bài thi giữa kỳ', 'Kỳ vọng điểm số từ bố mẹ', 'Môn Toán & Hoá'],
+    empathyMessage: 'An An thấu hiểu cảm giác nghẹt thở khi nhìn vào lịch thi dồn dập. Điểm số là một cột mốc, nhưng nó không định nghĩa toàn bộ giá trị và năng lực của bạn. Hãy chia nhỏ bài học thành từng phần 25 phút nhé!',
     selfCareTips: [
-      'Thử bài tập hít thở 4-7-8 để nhịp tim và hệ thần kinh dịu lại.',
-      'Uống một cốc nước ấm hoặc nghe một bản nhạc không lời nhẹ nhàng.',
-      'Nếu mệt quá, hãy tạm gác màn hình điện thoại và cho đôi mắt nghỉ ngơi.',
+      'Áp dụng phương pháp Pomodoro: học 25 phút, nghỉ 5 phút vận động nhẹ.',
+      'Viết ra 3 câu hỏi bạn còn chưa hiểu để ngày mai hỏi bạn bè hoặc thầy cô.',
+      'Uống một cốc nước ấm và tập thở 4 nhịp trước khi đi ngủ.',
     ],
-    safetyRisk: hasSafetyRisk,
-  };
-}
-
-// 1. API: Phân tích cảm xúc nhật ký NLP
-app.post('/api/analyze-emotion', async (req, res) => {
-  try {
-    const { title = '', content = '' } = req.body;
-    if (!content.trim()) {
-      return res.status(400).json({ error: 'Nội dung nhật ký không được để trống.' });
-    }
-
-    const hasSafetyRisk = checkEmergencyKeywords(`${title} ${content}`);
-
-    if (ai) {
-      try {
-        const prompt = `Bạn là chuyên gia NLP tâm lý học đường cho thanh thiếu niên (học sinh, Gen Z).
-Hãy đọc bài nhật ký sau đây và phân tích cảm xúc của bạn trẻ:
-Tiêu đề: "${title}"
-Nội dung: "${content}"
-
-Yêu cầu trả về DUY NHẤT một chuỗi JSON hợp lệ không kèm markdown backticks theo đúng cấu trúc sau:
-{
-  "emotions": {
-    "joy": 0-100,
-    "sadness": 0-100,
-    "anger": 0-100,
-    "anxiety": 0-100,
-    "optimism": 0-100
   },
-  "dominantEmotion": "Chuỗi ngắn mô tả cảm xúc chủ đạo",
-  "sentimentScore": điểm từ -100 đến +100,
-  "triggers": ["1-3 tác nhân chính gây nên cảm xúc"],
-  "empathyMessage": "Lời chia sẻ, thấu hiểu ấm áp 2-3 câu từ bạn đồng hành An An",
-  "selfCareTips": ["Gợi ý 1", "Gợi ý 2"],
-  "safetyRisk": ${hasSafetyRisk ? 'true' : 'false'}
-}`;
+  {
+    id: 'entry-2',
+    title: 'Bị bạn bè chế ảnh và bình luận trêu chọc trong nhóm chat',
+    content: 'Chiều nay một bạn trong lớp chụp lén khoảnh khắc mình ngáp ngủ trong giờ sinh hoạt rồi chế meme gửi vào nhóm chat chung có gần 40 người. Mọi người thả haha và trêu chọc. Mình cảm thấy xấu hổ và tổn thương vô cùng, nhưng không dám nhắn gì vì sợ bị nói là không biết đùa...',
+    date: '2026-10-11',
+    time: '22:15',
+    moodEmoji: '🥺',
+    moodLabel: 'Tổn thương',
+    tags: ['Bạn bè', 'Mạng xã hội', 'Bắt nạt mạng'],
+    emotions: { joy: 5, sadness: 82, anger: 65, anxiety: 75, optimism: 15 },
+    dominantEmotion: 'Tổn thương & Tức giận',
+    sentimentScore: -60,
+    triggers: ['Bị chụp lén và chế meme', 'Nhóm chat trêu chọc', 'Sợ bị cô lập'],
+    empathyMessage: 'Trêu chọc khi người khác không đồng ý và cảm thấy bị bẽ mặt thì không còn là trò đùa vui vẻ nữa. Cảm xúc tức giận và tổn thương của bạn là hoàn toàn chính đáng. Bạn không có lỗi trong chuyện này!',
+    selfCareTips: [
+      'Chụp ảnh màn hình làm bằng chứng lưu trữ lại trước khi rời hoặc tắt thông báo nhóm.',
+      'Nhắn tin riêng thẳng thắn với bạn đăng ảnh yêu cầu gỡ xuống.',
+      'Chia sẻ với một người bạn thân hoặc thầy cô chủ nhiệm để nhận sự hỗ trợ.',
+    ],
+  },
+  {
+    id: 'entry-3',
+    title: 'Tâm sự với bạn thân và tập hít thở',
+    content: 'Sáng nay mình đã nhắn tin cho Linh (bạn thân). Linh lắng nghe và bảo mình không việc gì phải xấu hổ cả, Linh còn lên tiếng nhắc nhở bạn kia xoá ảnh. Buổi chiều về hai đứa cùng đi trà sữa và thử bài tập hít thở trong phòng. Mình thấy lồng ngực nhẹ nhõm hơn nhiều.',
+    date: '2026-10-12',
+    time: '19:40',
+    moodEmoji: '😌',
+    moodLabel: 'Bình yên hơn',
+    tags: ['Tình bạn', 'Chữa lành', 'Bản thân'],
+    emotions: { joy: 65, sadness: 25, anger: 15, anxiety: 30, optimism: 78 },
+    dominantEmotion: 'Nhẹ nhõm & Biết ơn',
+    sentimentScore: 50,
+    triggers: ['Sự ủng hộ của bạn thân', 'Được lắng nghe và thấu hiểu', 'Bài tập hít thở'],
+    empathyMessage: 'Thật ấm lòng khi bạn có một người bạn tuyệt vời như Linh bên cạnh! Việc dám mở lời tâm sự đã giúp bạn giải tỏa được rất nhiều năng lượng u ám. Hãy trân trọng tình bạn này nhé.',
+    selfCareTips: [
+      'Viết một lời cảm ơn ngắn gửi đến Linh.',
+      'Ghi nhớ cảm giác nhẹ nhõm này như một điểm tựa cho những ngày khó khăn sau.',
+    ],
+  },
+  {
+    id: 'entry-4',
+    title: 'Bài tập nhóm bị dồn việc một mình',
+    content: 'Hôm nay nhóm làm thuyết trình môn Lịch sử có 4 người nhưng 2 bạn lặn mất tăm, bạn còn lại thì bảo bận đi chơi. Hạn chót là tối mai mà slide vẫn dở dang. Mình vừa tức vừa bất lực, tại sao người có trách nhiệm luôn phải chịu thiệt thòi?',
+    date: '2026-10-13',
+    time: '20:00',
+    moodEmoji: '😤',
+    moodLabel: 'Bực bội',
+    tags: ['Học tập', 'Đội nhóm', 'Bất công'],
+    emotions: { joy: 10, sadness: 35, anger: 85, anxiety: 60, optimism: 30 },
+    dominantEmotion: 'Tức giận & Bất mãn',
+    sentimentScore: -40,
+    triggers: ['Thành viên nhóm vô trách nhiệm', 'Hạn chót gấp', 'Gánh nặng công việc'],
+    empathyMessage: 'Sự tức giận của bạn là hoàn toàn hợp lý. Bạn không có nghĩa vụ phải làm thay phần việc của người khác và chịu đựng trong im lặng. Hãy đặt ra ranh giới rõ ràng!',
+    selfCareTips: [
+      'Lập tức thông báo rõ ràng trong nhóm: Ai không hoàn thành phần việc trước 10h tối sẽ không có tên trong slide.',
+      'Gửi email trao đổi trung thực với thầy cô bộ môn về tiến độ thực tế.',
+      'Đứng dậy vươn vai, uống một ngụm nước mát để hạ hỏa.',
+    ],
+  },
+  {
+    id: 'entry-5',
+    title: 'Giải quyết ổn thỏa và thiết lập ranh giới',
+    content: 'Mình đã nhắn tin thẳng thắn cho cả nhóm và báo với cô giáo. Thật bất ngờ là cô đã hỗ trợ, yêu cầu 2 bạn kia phải nộp bài độc lập, còn mình và bạn còn lại chỉ cần hoàn thành phần của mình. Cảm thấy tự hào vì lần đầu tiên mình dám lên tiếng bảo vệ công sức của bản thân.',
+    date: '2026-10-14',
+    time: '21:10',
+    moodEmoji: '💪',
+    moodLabel: 'Tự tin',
+    tags: ['Phát triển bản thân', 'Ranh giới', 'Học tập'],
+    emotions: { joy: 78, sadness: 10, anger: 15, anxiety: 20, optimism: 85 },
+    dominantEmotion: 'Tự hào & Vững vàng',
+    sentimentScore: 68,
+    triggers: ['Dám lên tiếng bảo vệ bản thân', 'Cô giáo công bằng hỗ trợ', 'Hoàn thành công việc'],
+    empathyMessage: 'Tuyệt vời lắm! Lên tiếng bảo vệ ranh giới của mình là một kỹ năng trưởng thành vô cùng quan trọng. Bạn đã xử lý tình huống rất văn minh và hiệu quả.',
+    selfCareTips: [
+      'Thưởng cho bản thân một tập phim hoạt hình yêu thích tối nay.',
+      'Tự nhủ: "Mình hoàn toàn có quyền từ chối những điều bất công".',
+    ],
+  },
+  {
+    id: 'entry-6',
+    title: 'Đi dạo ngắm hoàng hôn và nghe nhạc lofi',
+    content: 'Chiều thứ Sáu tan học sớm, mình đi bộ vòng quanh hồ gần nhà. Gió thu mát rượi, bầu trời chuyển sang màu cam hồng rất đẹp. Cắm tai nghe bật nhạc lofi không lời, cảm giác mọi ồn ào và áp lực suốt cả tuần dần tan biến.',
+    date: '2026-10-15',
+    time: '18:50',
+    moodEmoji: '🍃',
+    moodLabel: 'Thư thái',
+    tags: ['Bản thân', 'Thiên nhiên', 'Nghỉ ngơi'],
+    emotions: { joy: 85, sadness: 8, anger: 5, anxiety: 12, optimism: 92 },
+    dominantEmotion: 'Bình yên & Thư thái',
+    sentimentScore: 82,
+    triggers: ['Không khí trong lành', 'Hoàng hôn', 'Âm nhạc lofi'],
+    empathyMessage: 'Khoảnh khắc được hòa mình vào thiên nhiên và tĩnh lặng là liều thuốc quý giá nhất cho tâm hồn. Bạn đã kiên cường vượt qua những ngày giông bão để đón hoàng hôn bình yên.',
+    selfCareTips: [
+      'Chụp lại một bức ảnh bầu trời làm hình nền điện thoại nhắc nhở bản thân.',
+      'Đi ngủ sớm hơn 30 phút để nạp lại đầy pin năng lượng.',
+    ],
+  },
+];
 
-        const response = await withTimeout(
-          ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              temperature: 0.4,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-            },
-          }),
-          8000
-        );
+export const SAFETY_TOPICS: SafetyTopic[] = [
+  {
+    id: 'cyberbullying',
+    category: 'cyberbullying',
+    title: 'Đối Phó Với Bạo Lực Mạng & Bắt Nạt Ẩn Danh',
+    badge: 'Kỹ Năng Sống Còn',
+    subtitle: 'Công thức 4B: Bằng chứng - Block - Báo cáo - Bạn bè & Người lớn',
+    iconName: 'ShieldAlert',
+    colorBg: 'bg-rose-50',
+    colorBorder: 'border-rose-200',
+    colorAccent: 'text-rose-600',
+    summary: 'Bạo lực mạng (Cyberbullying) là hành vi bêu rếu, chế giễu ngoại hình, lập group tẩy chay hoặc xúc phạm nhân phẩm có chủ đích trên môi trường mạng.',
+    comicVisual: {
+      title: 'Kẻ Bắt Nạt Núp Sau Bàn Phím',
+      description: 'Họ chỉ mạnh mẽ khi giấu mặt. Phản ứng tức giận của bạn chính là "mồi lửa" nuôi sống họ. Tắt tiếng và ngắt nguồn cung cấp!',
+      icon: 'UserX',
+    },
+    keyRules: [
+      {
+        rule: 'Nguyên tắc 1: Tuyệt đối KHÔNG trả đũa đôi co',
+        detail: 'Càng tranh cãi tay đôi, kẻ bắt nạt càng phấn khích và thuật toán mạng xã hội càng đẩy bài viết lên cao.',
+      },
+      {
+        rule: 'Nguyên tắc 2: Chụp ảnh màn hình lưu bằng chứng (Evidence)',
+        detail: 'Chụp lại toàn bộ tin nhắn, tài khoản kẻ quấy rối, mốc thời gian và liên kết trước khi chặn.',
+      },
+      {
+        rule: 'Nguyên tắc 3: Chặn (Block) & Báo cáo (Report) quyết liệt',
+        detail: 'Dùng tính năng Báo cáo quấy rối của Facebook, TikTok, Instagram hoặc Zalo, sau đó chặn vĩnh viễn tài khoản đó.',
+      },
+      {
+        rule: 'Nguyên tắc 4: Nói ra với người lớn bạn tin tưởng',
+        detail: 'Chia sẻ với cha mẹ, thầy cô tâm lý hoặc gọi Tổng đài Bảo vệ Trẻ em 111. Bạn không phải chịu đựng trong cô độc.',
+      },
+    ],
+    actionGuide: [
+      'Bước 1: Giữ bình tĩnh, không gõ phím phản hồi trong lúc đang tức giận.',
+      'Bước 2: Chụp màn hình (kèm đường link bài viết/trang cá nhân kẻ xấu).',
+      'Bước 3: Nhờ bạn bè cùng gắn cờ báo cáo vi phạm tiêu chuẩn cộng đồng.',
+      'Bước 4: Tạm rời xa mạng xã hội trong 24 giờ, làm việc mình yêu thích ngoài đời thực.',
+    ],
+    cautionSigns: [
+      'Nhận được tin nhắn ẩn danh từ tài khoản clone đe dọa, chửi bới.',
+      'Hình ảnh cá nhân bị cắt ghép meme, chế giễu cơ thể (body shaming) trong group kín.',
+      'Bị tạo nhóm chat riêng để cô lập hoặc kích động tẩy chay.',
+    ],
+    verifiedSources: [
+      { name: 'Tổng đài Quốc gia Bảo vệ Trẻ em 111', desc: 'Hỗ trợ can thiệp bạo lực học đường & không gian mạng 24/7' },
+      { name: 'Cục An toàn Thông tin - Bộ TT&TT (vn-cop.vn)', desc: 'Mạng lưới ứng cứu và bảo vệ trẻ em trên môi trường mạng' },
+      { name: 'CyberKid Vietnam', desc: 'Tổ chức phi lợi nhuận bảo vệ an toàn số cho trẻ em Việt Nam' },
+    ],
+  },
+  {
+    id: 'privacy',
+    category: 'privacy',
+    title: 'Quản Lý Dấu Chân Số & Quyền Riêng Tư Cá Nhân',
+    badge: 'Bảo Mật Tối Ưu',
+    subtitle: 'Những gì bạn đăng lên mạng hôm nay có thể tồn tại mãi mãi',
+    iconName: 'Lock',
+    colorBg: 'bg-emerald-50',
+    colorBorder: 'border-emerald-200',
+    colorAccent: 'text-emerald-600',
+    summary: 'Dấu chân kỹ thuật số (Digital Footprint) là toàn bộ dấu vết bạn để lại trên Internet: bài đăng, ảnh check-in, lịch sử tìm kiếm, và thông tin tài khoản cá nhân.',
+    comicVisual: {
+      title: 'Tấm Vé "Check-in" Lộ Địa Chỉ Nhà',
+      description: 'Chụp ảnh khoe vé xem phim có mã vạch, check-in thời gian thực ở trường học hay nhà riêng là mồi ngon cho kẻ theo dõi rình mò!',
+      icon: 'MapPinOff',
+    },
+    keyRules: [
+      {
+        rule: 'Bật xác thực 2 lớp (2FA) bằng ứng dụng',
+        detail: 'Bật 2FA bằng Google Authenticator hoặc tin nhắn xác thực cho tài khoản Google, Facebook, Zalo.',
+      },
+      {
+        rule: 'Quy tắc 24 Giờ: Trì hoãn Check-in',
+        detail: 'Chỉ đăng ảnh chuyến đi sau khi bạn đã rời khỏi nơi đó. Đừng để người lạ biết chính xác vị trí thời gian thực của bạn.',
+      },
+      {
+        rule: 'Cảnh giác với trào lưu Oversharing (Chia sẻ quá đà)',
+        detail: 'Không bao giờ công khai: Căn cước công dân, thẻ học sinh (có tên trường + lớp), vé máy bay, góc chụp lộ số nhà.',
+      },
+      {
+        rule: 'Lọc danh sách bạn bè định kỳ mỗi học kỳ',
+        detail: 'Chỉ giữ kết nối với những người bạn quen biết ngoài đời. Chuyển trang cá nhân về chế độ Bạn bè (Friends only).',
+      },
+    ],
+    actionGuide: [
+      'Chuyển danh sách bài viết từ Công khai (Public) sang Bạn bè (Friends).',
+      'Tắt quyền truy cập Vị trí (Location) nền của ứng dụng mạng xã hội.',
+      'Thử tìm kiếm tên thật của chính bạn trên Google Search để kiểm tra rò rỉ dữ liệu.',
+      'Sử dụng mật khẩu mạnh dài trên 12 ký tự, không dùng ngày sinh hay tên riêng.',
+    ],
+    cautionSigns: [
+      'Nhận được thông báo có thiết bị lạ đăng nhập tài khoản ở tỉnh thành khác.',
+      'Người lạ vừa kết bạn nhưng nắm rất rõ lịch trình đi học, thói quen sinh hoạt của bạn.',
+      'Các ứng dụng quiz vui đòi hỏi quyền đọc danh bạ và quyền truy cập dữ liệu cá nhân.',
+    ],
+    verifiedSources: [
+      { name: 'Cổng Không Gian Mạng Quốc Gia (khonggianmang.vn)', desc: 'Cẩm nang hướng dẫn bảo mật cá nhân & kiểm tra lộ lọt thông tin' },
+      { name: 'Trung tâm Giám sát An toàn Không gian mạng Quốc gia (NCSC)', desc: 'Khuyến cáo phòng ngừa rò rỉ dữ liệu tài khoản' },
+    ],
+  },
+  {
+    id: 'fakenews',
+    category: 'fakenews',
+    title: 'Bộ Lọc Tin Giả, Lừa Đảo & Bẫy Deepfake',
+    badge: 'Tư Duy Phản Biện',
+    subtitle: 'Đừng vội tin và đừng vội chia sẻ khi chưa kiểm chứng 4 bước',
+    iconName: 'Sparkles',
+    colorBg: 'bg-amber-50',
+    colorBorder: 'border-amber-200',
+    colorAccent: 'text-amber-600',
+    summary: 'Tin giả (Fake News) và video giả mạo bằng AI (Deepfake) được thiết kế tinh vi để đánh vào nỗi sợ hãi, lòng tham hoặc sự hiếu kỳ của bạn trẻ.',
+    comicVisual: {
+      title: 'Bẫy Nạp Thẻ Game & Deepfake Giả Giọng',
+      description: '"Bấm link nhận 1000 Kim Cương miễn phí", "Mượn tiền khẩn cấp qua video call mờ ảo"... Những cái bẫy quen thuộc nhưng luôn có người sập!',
+      icon: 'AlertTriangle',
+    },
+    keyRules: [
+      {
+        rule: 'Nguyên tắc STOP: Dừng lại 10 giây trước khi bấm Share',
+        detail: 'Nếu một tiêu đề khiến bạn giật mình, hoảng sợ hoặc quá phấn khích, 90% nó được giật tít câu tương tác (Clickbait) hoặc lừa đảo.',
+      },
+      {
+        rule: 'Kiểm tra 4 Yếu tố: Nguồn - Tác giả - Thời gian - Bằng chứng',
+        detail: 'Tin tức này từ báo chính thống có tên miền .vn hay trang web rác đuôi lạ? Ngày đăng là hôm nay hay chuyện từ 5 năm trước?',
+      },
+      {
+        rule: 'Nhận diện Deepfake video call mượn tiền',
+        detail: 'Video call ngắn vài giây, hình ảnh bị giật, khuôn mặt đơ cứng, âm thanh méo mó và cúp máy viện cớ mạng lag rồi giục chuyển tiền gấp.',
+      },
+      {
+        rule: 'Không có bữa trưa miễn phí trên mạng',
+        detail: 'Mọi đường link hứa hẹn tặng skin game, tài khoản VIP, thẻ cào free đều là bẫy lừa cài mã độc chiếm đoạt tài khoản.',
+      },
+    ],
+    actionGuide: [
+      'Khi nhận tin nhắn vay tiền từ bạn bè: Gọi điện thoại trực tiếp số di động ngoài mạng xã hội để xác minh.',
+      'Sử dụng công cụ Google Tìm kiếm Hình ảnh để kiểm tra nguồn gốc ảnh.',
+      'Theo dõi các kênh thông tin chính thống của cơ quan báo chí uy tín (VTV24, TTXVN, Tuổi Trẻ).',
+    ],
+    cautionSigns: [
+      'Đường link lạ có ký tự sai chính tả như f4cebook.com, roblox-free.xyz.',
+      'Tin đồn lan truyền không dẫn tên tác giả, không có viện dẫn cơ quan chức năng.',
+    ],
+    verifiedSources: [
+      { name: 'Cổng Thông tin Chống Lừa Đảo (chongluadao.vn)', desc: 'Cơ sở dữ liệu các website lừa đảo và mã độc tại Việt Nam' },
+      { name: 'Trung tâm Xử lý Tin giả Việt Nam (tingia.gov.vn)', desc: 'Tra cứu và tiếp nhận phản ánh tin giả, tin sai sự thật' },
+    ],
+  },
+  {
+    id: 'grooming',
+    category: 'grooming',
+    title: 'Phòng Ngừa Dụ Dỗ & Tống Tiền Hình Ảnh (Sextortion)',
+    badge: 'Bảo Vệ Thân Thể',
+    subtitle: 'Cơ thể và hình ảnh riêng tư của bạn là bất khả xâm phạm',
+    iconName: 'HeartHandshake',
+    colorBg: 'bg-indigo-50',
+    colorBorder: 'border-indigo-200',
+    colorAccent: 'text-indigo-600',
+    summary: 'Dụ dỗ qua mạng (Online Grooming) là khi kẻ xấu tiếp cận trẻ em/teen bằng cách giả làm người tốt bụng, tặng quà, lắng nghe tâm sự rồi dần đòi hỏi gửi hình ảnh/video nhạy cảm.',
+    comicVisual: {
+      title: 'Chiếc Bẫy "Anh Trai Mưa" Tốt Bụng',
+      description: 'Họ bắt đầu bằng việc tặng quà game, tỏ ra thấu hiểu bạn hơn cả gia đình, rồi chuyển sang "chỉ gửi cho riêng anh xem thôi mà"...',
+      icon: 'EyeOff',
+    },
+    keyRules: [
+      {
+        rule: 'Quy tắc Vàng: Tuyệt đối KHÔNG chụp hoặc gửi ảnh riêng tư',
+        detail: 'Dù là bất kỳ ai hứa hẹn giữ bí mật đến đâu, một bức ảnh đã gửi đi là bạn đã mất hoàn toàn quyền kiểm soát nó.',
+      },
+      {
+        rule: 'Nếu bị đe dọa phát tán ảnh: KHÔNG chiều theo yêu cầu',
+        detail: 'Kẻ tống tiền sẽ KHÔNG BAO GIỜ dừng lại sau khi bạn gửi thêm ảnh hay tiền. Càng nhượng bộ, chúng càng đòi hỏi nhiều hơn.',
+      },
+      {
+        rule: 'Bạn là NẠN NHÂN, bạn không có tội lỗi đáng bị trừng phạt',
+        detail: 'Kẻ phạm pháp là kẻ tống tiền. Đừng sợ hãi tự trách bản thân dẫn đến suy nghĩ dại dột.',
+      },
+      {
+        rule: 'Tìm kiếm sự trợ giúp khẩn cấp ngay lập tức',
+        detail: 'Báo ngay cho cha mẹ, người lớn hoặc gọi số 111 (Tổng đài Quốc gia Bảo vệ Trẻ em). Họ có quy trình bảo mật danh tính tuyệt đối.',
+      },
+    ],
+    actionGuide: [
+      'Bước 1: Ngưng mọi liên lạc với kẻ tống tiền, không gửi thêm bất kỳ tài liệu hay tiền bạc nào.',
+      'Bước 2: Chụp ảnh toàn bộ bằng chứng tin nhắn tống tiền, số tài khoản, link trang cá nhân.',
+      'Bước 3: Bấm gọi ngay 111 hoặc nhờ người thân đưa đến công an khu vực để can thiệp.',
+      'Bước 4: Sử dụng công cụ Take It Down (takeitdown.ncmec.org) để ngăn chặn phát tán hình ảnh riêng tư trên toàn cầu.',
+    ],
+    cautionSigns: [
+      'Người lạ trên mạng hỏi về chuyện cơ thể, yêu cầu bật camera trong phòng ngủ kín.',
+      'Kẻ đó yêu cầu giữ bí mật mối quan hệ với bố mẹ và bạn bè.',
+      'Tặng quà có giá trị lớn bất thường mà không có lý do chính đáng.',
+    ],
+    verifiedSources: [
+      { name: 'Take It Down (Unicef & NCMEC hợp tác)', desc: 'Công cụ gỡ bỏ hình ảnh riêng tư của trẻ vị thành niên trên các nền tảng mạng xã hội' },
+      { name: 'Đường dây nóng Tổng đài 111', desc: 'Tiếp nhận tố giác tội phạm xâm hại và bảo vệ nạn nhân khẩn cấp' },
+    ],
+  },
+];
 
-        const rawText = response.text?.trim() || '';
-        const cleanedText = rawText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-        const parsed = JSON.parse(cleanedText);
+export const SAFETY_QUIZZES: SafetyQuiz[] = [
+  {
+    id: 'quiz-1',
+    category: 'Cyberbullying',
+    question: 'Bạn tình cờ thấy một nhóm bạn cùng khối lập group chat đặt biệt danh xúc phạm và bêu rếu ảnh một bạn trong lớp. Bạn nên làm gì?',
+    context: 'Tình huống bạo lực mạng học đường rất phổ biến',
+    options: [
+      {
+        text: 'Thả haha và nhắn theo cho vui, vì mình không phải là người tạo nhóm.',
+        isCorrect: false,
+        explanation: 'Hùa theo trò đùa ác ý vô tình biến bạn thành đồng phạm tiếp tay cho bạo lực mạng, gây tổn thương sâu sắc cho nạn nhân.',
+      },
+      {
+        text: 'Lặng lẽ rời nhóm, vờ như không biết gì để tránh bị liên lụy.',
+        isCorrect: false,
+        explanation: 'Im lặng đôi khi là đồng thuận. Bạn có thể làm tốt hơn thế để bảo vệ bạn mình một cách an toàn.',
+      },
+      {
+        text: 'Chụp lại màn hình làm bằng chứng, nhắc nhở nhóm dừng lại hoặc báo cho thầy cô/cố vấn tâm lý.',
+        isCorrect: true,
+        explanation: 'Chính xác! Lưu bằng chứng và báo người lớn có trách nhiệm là hành động dũng cảm giúp chấm dứt hành vi bắt nạt.',
+      },
+    ],
+  },
+  {
+    id: 'quiz-2',
+    category: 'Fake News & Scams',
+    question: 'Tài khoản mạng xã hội của một người bạn thân bất ngờ nhắn tin: "Tao đang kẹt tiền đóng tiền học gấp quá, mày chuyển khoản cho tao 500k vào số tài khoản này với, tối tao trả". Bạn nên làm gì?',
+    context: 'Thủ đoạn hack nick hoặc mạo danh bạn bè mượn tiền',
+    options: [
+      {
+        text: 'Chuyển khoản ngay vì bạn thân đang gặp hoạn nạn cần giúp đỡ.',
+        isCorrect: false,
+        explanation: 'Rất nguy hiểm! Tài khoản của bạn có thể đã bị kẻ xấu hack hoặc chiếm quyền kiểm soát.',
+      },
+      {
+        text: 'Gọi điện thoại trực tiếp vào số di động cá nhân của bạn để xác minh giọng nói và tình huống.',
+        isCorrect: true,
+        explanation: 'Chính xác! Luôn xác minh qua một kênh liên lạc độc lập (gọi điện thoại trực tiếp ngoài mạng xã hội) trước khi chuyển tiền.',
+      },
+      {
+        text: 'Chụp màn hình đăng lên trang cá nhân hỏi xem có ai bị bạn ấy mượn tiền không.',
+        isCorrect: false,
+        explanation: 'Điều này có thể làm lộ thông tin riêng tư và chưa phải là cách xác minh nhanh nhất.',
+      },
+    ],
+  },
+  {
+    id: 'quiz-3',
+    category: 'Digital Footprint',
+    question: 'Bạn vừa nhận được giấy báo trúng tuyển hoặc bằng khen học sinh giỏi. Bạn muốn chia sẻ niềm vui lên mạng xã hội, cách nào an toàn nhất?',
+    context: 'Khoe thành tích nhưng không để lộ dấu chân dữ liệu cá nhân',
+    options: [
+      {
+        text: 'Chụp toàn bộ tờ giấy báo bao gồm họ tên, ngày sinh, số CCCD, địa chỉ nhà và tên trường lớp.',
+        isCorrect: false,
+        explanation: 'Thông tin này có thể bị kẻ xấu dùng để mở tài khoản giả mạo, định danh hoặc rình mò địa chỉ nơi ở của bạn.',
+      },
+      {
+        text: 'Chụp ảnh có che mờ (blur) số CCCD, địa chỉ nhà, mã số học sinh, chỉ để lại lời chúc mừng và tên bạn.',
+        isCorrect: true,
+        explanation: 'Rất chuẩn! Bạn vẫn có thể chia sẻ niềm tự hào cùng bạn bè mà vẫn bảo vệ an toàn danh tính của mình.',
+      },
+      {
+        text: 'Ghim vị trí check-in tại nhà riêng khi đăng kèm bài viết.',
+        isCorrect: false,
+        explanation: 'Check-in tại nhà riêng khiến bất kỳ ai trên mạng cũng biết được tọa độ sinh sống chính xác của gia đình bạn.',
+      },
+    ],
+  },
+];
 
-        if (hasSafetyRisk) parsed.safetyRisk = true;
-        return res.json(parsed);
-      } catch (geminiError) {
-        console.warn('Gemini NLP call failed, using local NLP fallback:', geminiError);
-        return res.json(localFallbackEmotionAnalysis(title, content));
-      }
-    } else {
-      return res.json(localFallbackEmotionAnalysis(title, content));
-    }
-  } catch (error) {
-    console.error('Lỗi khi phân tích cảm xúc:', error);
-    res.status(500).json({ error: 'Không thể phân tích cảm xúc lúc này.' });
-  }
-});
-
-// 2. API: Chatbot đồng hành tâm lý 24/7 ("An An") - Đối chiếu tài liệu chính thống
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { messages = [] } = req.body;
-    if (!messages || messages.length === 0) {
-      return res.status(400).json({ error: 'Danh sách tin nhắn trống.' });
-    }
-
-    const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user')?.content || '';
-    const normalizedInput = lastUserMessage.toLowerCase();
-    const isCrisis = checkEmergencyKeywords(lastUserMessage);
-
-    const crisisResponse = `Mình nghe thấy bạn và cảm nhận được bạn đang phải trải qua một nỗi đau hay áp lực rất lớn lúc này. An An luôn ở đây bên cạnh bạn, nhưng sự an toàn và tính mạng của bạn là điều quan trọng nhất trên đời. 
-
-Bạn đừng cố gánh chịu một mình nhé. Hãy kết nối ngay với những người có thể bảo vệ bạn:
-📞 **Tổng đài Quốc gia Bảo vệ Trẻ em**: **111** (Gọi miễn phí 24/7)
-📞 **Đường dây nóng hỗ trợ tâm lý Ngày Mai**: **096 306 1414**
-📞 **Viện Sức khỏe Tâm thần - BV Bạch Mai**: **024 3869 3731**
-
-Có một thầy cô, người thân hoặc người lớn nào mà bạn cảm thấy an tâm nhất để chia sẻ ngay bây giờ không? Bạn luôn xứng đáng được yêu thương, được lắng nghe và được an toàn!`;
-
-    if (isCrisis) {
-      return res.json({
-        reply: crisisResponse,
-        safetyTriggered: true,
-        officialSources: ['Tổng đài Quốc gia Bảo vệ Trẻ em 111', 'Đường dây nóng Ngày Mai', 'Bộ Y tế Việt Nam'],
-        suggestedActions: ['Gọi ngay Tổng đài 111 (Miễn phí)', 'Tập bài thở 4-7-8 để dịu lại', 'Nói chuyện với người lớn tin cậy'],
-      });
-    }
-
-    const getLocalGroundedResponse = (query: string) => {
-      if (query.includes('học') || query.includes('thi') || query.includes('điểm') || query.includes('áp lực')) {
-        return {
-          reply: `An An hiểu cảm giác nghẹt thở khi nhìn bài vở và kỳ thi dồn dập 🥺. Cảm giác này hoàn toàn bình thường và rất nhiều bạn học sinh cũng đang cùng trải qua.
-
-Theo **Khuyến nghị Sức khỏe Tâm thần Học đường của UNICEF & Viện Sức khỏe Tâm thần**:
-1. **Phương pháp Pomodoro & Chia nhỏ mục tiêu:** Chia thành từng phiên học 25 phút, nghỉ 5 phút vận động nhẹ.
-2. **Quy tắc Pareto (80/20):** 80% điểm số nằm ở 20% kiến thức nền tảng cốt lõi. Ưu tiên lý thuyết cơ bản trước.
-3. **Tái cấu trúc nhận thức (Cognitive Reframing):** Điểm số là một cột mốc phản ánh sự chuẩn bị tại một thời điểm, chứ **không định nghĩa giá trị, nhân cách hay tương lai** của bạn.
-4. **Giấc ngủ phục hồi:** Hãy ngủ ít nhất 7 tiếng để não chuyển kiến thức sang trí nhớ dài hạn.`,
-          officialSources: ['Khuyến nghị UNICEF Việt Nam', 'Viện Sức khỏe Tâm thần - BV Bạch Mai'],
-          suggestedActions: ['🌿 Tập thở 4-7-8 giảm stress', '📝 Lập kế hoạch học Pomodoro', '💬 Tâm sự thêm về môn học khó'],
-        };
-      }
-
-      if (query.includes('bắt nạt') || query.includes('meme') || query.includes('nói xấu') || query.includes('bạo lực mạng')) {
-        return {
-          reply: `An An rất tiếc và đồng cảm sâu sắc khi bạn phải trải qua chuyện này. Bị bêu rếu hay chế giễu trên mạng gây tổn thương rất lớn, và bạn hoàn toàn KHÔNG CÓ LỖI trong việc này 🌸.
-
-Theo **Cẩm nang Phòng chống Bạo lực Mạng của Cục An toàn Thông tin (Bộ TT&TT)** và **Luật Trẻ em 2016 (Điều 29)**, bạn hãy áp dụng ngay **Quy tắc 4B**:
-1. **B1: Bằng chứng (Evidence):** Chụp màn hình lại toàn bộ tin nhắn, bài đăng, đường link và tài khoản kẻ quấy rối có kèm ngày giờ.
-2. **B2: Block (Chặn):** Chặn tài khoản kẻ bắt nạt. Đừng đôi co hay trả lời.
-3. **B3: Báo cáo (Report):** Dùng tính năng Báo cáo quấy rối của nền tảng (Facebook, TikTok, Zalo) để gỡ bỏ bài viết vi phạm.
-4. **B4: Bạn bè & Người lớn:** Chia sẻ với bố mẹ, thầy cô chủ nhiệm hoặc gọi ngay **Tổng đài 111** để được hỗ trợ can thiệp.`,
-          officialSources: ['Cục An toàn thông tin (Bộ TT&TT)', 'Luật Trẻ em 2016 (Điều 29)', 'Tổng đài Quốc gia 111'],
-          suggestedActions: ['🛡️ Xem quy tắc 4B chi tiết', '📞 Cách liên hệ Tổng đài 111', '💬 Mẫu câu nói chuyện với thầy cô'],
-        };
-      }
-
-      return {
-        reply: `Chào bạn, An An luôn ở đây với bạn 🌸. Dù là áp lực thi cử, rắc rối tuổi dậy thì, bất hòa với bạn bè, chuyện gia đình hay những điều bối rối trên mạng xã hội, bạn cứ thoải mái trút bầu tâm sự nhé.
-
-Mọi lời khuyên của An An đều dựa trên các **tài liệu chính thống từ UNICEF, Cục An toàn thông tin (Bộ TT&TT) và Viện Sức khỏe Tâm thần**. Hôm nay bạn đang cảm thấy thế nào?`,
-        officialSources: ['UNICEF Việt Nam', 'Cục An toàn thông tin - Bộ TT&TT', 'Tổng đài Quốc gia 111'],
-        suggestedActions: ['🎓 Áp lực học tập & Thi cử', '🛡️ Bị bắt nạt trên mạng', '👨‍👩‍👦 Bất đồng với gia đình'],
-      };
-    };
-
-    if (ai) {
-      try {
-        const systemInstruction = `Bạn là "An An" (Tâm An) - chuyên gia tâm lý học đường và cố vấn an toàn không gian mạng AI dành cho học sinh, thanh thiếu niên và trẻ em Việt Nam (Gen Z).
-Giải quyết mọi câu hỏi, tâm sự của bạn trẻ bằng cách đồng cảm sâu sắc, kết hợp lời khuyên dựa trên các TÀI LIỆU CHÍNH THỐNG: Luật Trẻ em 2016, Cẩm nang Cục An toàn thông tin (Bộ TT&TT), Khuyến nghị UNICEF & WHO, Viện Sức khỏe Tâm thần Bạch Mai, Tổng đài 111.
-Xưng hô: "An An" và "Bạn", dịu dàng, ấm áp, không phán xét.
-Trả về JSON duy nhất theo định dạng:
-{
-  "reply": "Nội dung phản hồi Markdown",
-  "suggestedActions": ["3 hành động gợi ý tiếp theo"],
-  "officialSources": ["2-3 tên cơ quan tài liệu chính thống"],
-  "safetyTriggered": false
-}`;
-
-        const formattedContents = messages.map((m: any) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        }));
-
-        const response = await withTimeout(
-          ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: formattedContents,
-            config: {
-              systemInstruction,
-              temperature: 0.6,
-              responseMimeType: 'application/json',
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-            },
-          }),
-          8000
-        );
-
-        const rawText = response.text?.trim() || '';
-        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-        const parsed = JSON.parse(cleaned);
-
-        return res.json({
-          reply: parsed.reply || 'An An luôn ở đây lắng nghe bạn. Bạn hãy chia sẻ thêm nhé!',
-          suggestedActions: parsed.suggestedActions || ['🌿 Tập thở 4-7-8', '📝 Ghi vào nhật ký NLP', '💬 Tâm sự thêm'],
-          officialSources: parsed.officialSources || ['UNICEF Việt Nam', 'Cục An toàn thông tin (Bộ TT&TT)'],
-          safetyTriggered: Boolean(parsed.safetyTriggered),
-        });
-      } catch (geminiError) {
-        console.warn('Gemini chat fallback to local engine:', geminiError);
-        return res.json({ ...getLocalGroundedResponse(normalizedInput), safetyTriggered: false });
-      }
-    } else {
-      return res.json({ ...getLocalGroundedResponse(normalizedInput), safetyTriggered: false });
-    }
-  } catch (error) {
-    console.error('Lỗi API chat:', error);
-    res.status(500).json({ error: 'Không thể xử lý tin nhắn lúc này.' });
-  }
-});
-
-// Setup Vite dev server or static distribution
-async function startServer() {
-  if (!isProduction) {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌸 Tâm An - SafeSpace server đang chạy tại http://localhost:${PORT}`);
-  });
-}
-
-startServer();
-      /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
-import { INITIAL_JOURNAL_ENTRIES } from './data/mockData';
-import { JournalEntry } from './types';
-import { Navbar } from './components/Navbar';
-import { HeroSection } from './components/HeroSection';
-import { EmotionChart } from './components/EmotionChart';
-import { JournalView } from './components/JournalView';
-import { SafetyHub } from './components/SafetyHub';
-import { CompanionChat } from './components/CompanionChat';
-import { FloatingChatButton } from './components/FloatingChatButton';
-import { BreathingWidget } from './components/BreathingWidget';
-import { EmergencyModal } from './components/EmergencyModal';
-import { Footer } from './components/Footer';
-import { X } from 'lucide-react';
-import { MoodPreset } from './components/HeroSection';
-import { soundManager } from './utils/soundEffects';
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState<'journal' | 'safety' | 'chat'>('journal');
-
-  // Khởi tạo danh sách nhật ký: khi máy mới truy cập lần đầu, mặc định về 0 hết!
-  const [entries, setEntries] = useState<JournalEntry[]>(() => {
-    const saved = localStorage.getItem('taman_entries');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        console.warn('Lỗi đọc dữ liệu nhật ký từ localStorage:', e);
-      }
-    }
-    return [];
-  });
-
-  const [selectedEntryForView, setSelectedEntryForView] = useState<JournalEntry | null>(null);
-  const [isBreathingModalOpen, setIsBreathingModalOpen] = useState<boolean>(false);
-  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState<boolean>(false);
-
-  useEffect(() => {
-    localStorage.setItem('taman_entries', JSON.stringify(entries));
-  }, [entries]);
-
-  const handleAddEntry = (newEntry: JournalEntry) => {
-    setEntries((prev) => [newEntry, ...prev]);
-  };
-
-  const handleDeleteEntry = (id: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  // Khi nhấn chọn cảm xúc thì các tiêu chí bắt đầu thay đổi tương ứng!
-  const handleSelectMood = (mood: MoodPreset) => {
-    soundManager.playZenChime(660);
-
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().slice(0, 5);
-
-    const moodEntry: JournalEntry = {
-      id: `entry-${Date.now()}`,
-      title: `Cảm xúc hôm nay: ${mood.label}`,
-      content: `Hôm nay mình đang cảm thấy ${mood.label.toLowerCase()}. ${mood.message}`,
-      date: dateStr,
-      time: timeStr,
-      moodEmoji: mood.emoji,
-      moodLabel: mood.label,
-      tags: ['Cảm xúc hôm nay', mood.label],
-      emotions: mood.scores,
-      dominantEmotion: mood.dominant,
-      sentimentScore: Math.round(
-        (mood.scores.joy + mood.scores.optimism - mood.scores.sadness - mood.scores.anxiety) / 2
-      ),
-      triggers: ['Tâm trạng trong ngày'],
-      empathyMessage: mood.message,
-      selfCareTips: [
-        'Hít thở chậm 3 nhịp để cơ thể thư giãn',
-        'Uống một ngụm nước ấm hoặc trà thảo mộc',
-        'Lắng nghe một bài nhạc êm dịu',
-      ],
-    };
-
-    setEntries((prev) => [moodEntry, ...prev.filter((e) => e.date !== dateStr)]);
-  };
-
-  const handleResetAllToZero = () => {
-    soundManager.playZenChime(440);
-    setEntries([]);
-    setSelectedEntryForView(null);
-    localStorage.removeItem('taman_entries');
-  };
-
-  const handleLoadMockData = () => {
-    soundManager.playZenChime(528);
-    setEntries(INITIAL_JOURNAL_ENTRIES);
-  };
-
-  const handleSelectEntryFromChart = (entry: JournalEntry) => {
-    setSelectedEntryForView(entry);
-    const journalElem = document.getElementById('journal-section');
-    if (journalElem) {
-      journalElem.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[#F8FAF9] text-gray-900 font-sans flex flex-col selection:bg-teal-100 selection:text-teal-900">
-      {/* Header điều hướng */}
-      <Navbar
-        activeTab={activeTab}
-        onSelectTab={(tab) => {
-          setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
-        onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
-      />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-        {/* Hero Section */}
-        <HeroSection
-          entries={entries}
-          onOpenNewJournal={() => {
-            setActiveTab('journal');
-            const journalElem = document.getElementById('journal-section');
-            if (journalElem) {
-              journalElem.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}
-          onOpenBreathing={() => setIsBreathingModalOpen(true)}
-          onOpenSafetyHub={() => {
-            setActiveTab('safety');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onSelectMood={handleSelectMood}
-          onResetAllToZero={handleResetAllToZero}
-          onLoadMockData={handleLoadMockData}
-        />
-
-        {/* Tab 1: Nhật ký cảm xúc & Biểu đồ NLP */}
-        {activeTab === 'journal' && (
-          <div className="space-y-12 animate-in fade-in">
-            <section id="chart-section">
-              <EmotionChart
-                entries={entries}
-                onSelectEntry={handleSelectEntryFromChart}
-              />
-            </section>
-
-            <section id="journal-section">
-              <JournalView
-                entries={entries}
-                onAddEntry={handleAddEntry}
-                onDeleteEntry={handleDeleteEntry}
-                selectedEntryForView={selectedEntryForView}
-                onClearSelectedEntry={() => setSelectedEntryForView(null)}
-              />
-            </section>
-          </div>
-        )}
-
-        {/* Tab 2: Trạm an toàn không gian mạng */}
-        {activeTab === 'safety' && (
-          <div className="animate-in fade-in">
-            <SafetyHub onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)} />
-          </div>
-        )}
-
-        {/* Tab 3: Bạn đồng hành AI An An */}
-        {activeTab === 'chat' && (
-          <div className="animate-in fade-in py-4">
-            <div className="text-center max-w-xl mx-auto mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Trò Chuyện Chuyên Sâu Cùng An An
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Người bạn AI lắng nghe mọi bí mật, nỗi niềm và lo âu của bạn trong không gian riêng tư
-              </p>
-            </div>
-            <CompanionChat
-              isFloating={false}
-              onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
-              onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
-            />
-          </div>
-        )}
-      </main>
-
-      {/* Footer */}
-      <Footer
-        onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
-        onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
-      />
-
-      {/* Nút Chat nổi 24/7 */}
-      <FloatingChatButton
-        onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
-        onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
-      />
-
-      {/* Modal Tập thở */}
-      {isBreathingModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="relative w-full max-w-lg">
-            <button
-              onClick={() => setIsBreathingModalOpen(false)}
-              className="absolute -top-3 -right-3 z-10 w-9 h-9 rounded-full bg-white text-gray-700 shadow-lg flex items-center justify-center hover:bg-gray-100 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <BreathingWidget onClose={() => setIsBreathingModalOpen(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* Modal Cứu trợ khẩn cấp SOS */}
-      <EmergencyModal
-        isOpen={isEmergencyModalOpen}
-        onClose={() => setIsEmergencyModalOpen(false)}
-      />
-    </div>
-  );
-}
+export const HOTLINES: HotlineContact[] = [
+  {
+    name: 'Tổng đài Quốc gia Bảo vệ Trẻ em',
+    number: '111',
+    shortDesc: 'Tư vấn tâm lý, can thiệp khẩn cấp bạo lực học đường, xâm hại và bạo lực mạng.',
+    badge: 'Khẩn cấp 24/7',
+    available: '24/7 Miễn phí cước',
+    isFree: true,
+    type: 'children',
+  },
+  {
+    name: 'Đường dây nóng Hỗ trợ Tâm lý Ngày Mai',
+    number: '096 306 1414',
+    shortDesc: 'Lắng nghe, thấu hiểu người trầm cảm, khủng hoảng cảm xúc và thanh thiếu niên.',
+    badge: 'Tư vấn Tâm lý',
+    available: '08:00 - 20:30 Hằng ngày',
+    isFree: true,
+    type: 'mental_health',
+  },
+  {
+    name: 'Viện Sức khỏe Tâm thần - BV Bạch Mai',
+    number: '024 3869 3731',
+    shortDesc: 'Đơn vị y tế chuyên sâu hỗ trợ can thiệp rối loạn lo âu, trầm cảm thanh thiếu niên.',
+    badge: 'Chuyên gia Y tế',
+    available: 'Giờ hành chính & Cấp cứu',
+    isFree: false,
+    type: 'mental_health',
+  },
+  {
+    name: 'Tổng đài Cảnh sát Khẩn cấp',
+    number: '113',
+    shortDesc: 'Ứng phó khẩn cấp các hành vi bạo lực thân thể, đe dọa tính mạng hoặc tống tiền nguy hiểm.',
+    badge: 'Công An',
+    available: '24/7 Toàn quốc',
+    isFree: true,
+    type: 'police',
+  },
+];
